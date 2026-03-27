@@ -56,7 +56,7 @@ def download_data(tickers: list[str], start: str, end: str) -> dict:
     return data
 
 
-def compute_label(df: pd.DataFrame, end_idx: int) -> int | None:
+def compute_label(df: pd.DataFrame, end_idx: int):
     """
     Return 1 (UP), 0 (DOWN), or None (ambiguous) for a given window end index.
     """
