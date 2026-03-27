@@ -41,13 +41,18 @@ START_DATE = "2018-01-01"
 END_DATE = "2024-01-01"
 
 
-def download_data(tickers: list[str], start: str, end: str) -> dict:
+def download_data(tickers, start, end):
     """Download OHLCV data for a list of tickers."""
     data = {}
     print(f"\n📥 Downloading data for {len(tickers)} tickers...")
     for ticker in tqdm(tickers, desc="Fetching"):
         try:
-            df = yf.download(ticker, start=start, end=end, progress=False)
+            df = yf.download(ticker, start=start, end=end, progress=False, auto_adjust=True)
+            # Flatten MultiIndex columns (newer yfinance versions return these)
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+            # Remove duplicate columns if any
+            df = df.loc[:, ~df.columns.duplicated()]
             if len(df) > WINDOW_SIZE + FUTURE_DAYS + 10:
                 data[ticker] = df
         except Exception as e:
@@ -116,9 +121,6 @@ def generate_dataset(output_dir: str = "results/charts") -> pd.DataFrame:
     for ticker, df in tqdm(all_data.items(), desc="Processing tickers"):
         # Drop missing values and ensure correct column format
         df = df.dropna()
-        # Flatten MultiIndex columns if present (yfinance sometimes returns these)
-        if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.get_level_values(0)
 
         for i in range(WINDOW_SIZE, len(df) - FUTURE_DAYS):
             label = compute_label(df, i)
@@ -149,8 +151,11 @@ def generate_dataset(output_dir: str = "results/charts") -> pd.DataFrame:
     print(f"\n✅ Dataset generation complete!")
     print(f"   Charts generated : {total_generated:,}")
     print(f"   Ambiguous skipped: {total_skipped:,}")
-    print(f"   UP  samples      : {(metadata['label'] == 1).sum():,}")
-    print(f"   DOWN samples     : {(metadata['label'] == 0).sum():,}")
+    if not metadata.empty:
+        print(f"   UP  samples      : {(metadata['label'] == 1).sum():,}")
+        print(f"   DOWN samples     : {(metadata['label'] == 0).sum():,}")
+    else:
+        print("   ⚠ No charts generated — check your internet connection and try again.")
     print(f"   Metadata saved to: {metadata_path}")
 
     return metadata
