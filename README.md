@@ -118,6 +118,14 @@ This generates:
 python src/predict.py --ticker MSFT
 ```
 
+### 7. Launch the web app 🌐
+
+```bash
+streamlit run app.py
+```
+
+This opens an interactive browser app where you can type any ticker and instantly see the candlestick chart + CNN prediction with confidence scores.
+
 ```
 ==========================================
   Ticker     : MSFT
