@@ -24,8 +24,7 @@ results/charts/
 *.pkl
 *.csv
 
-# Keep model weights and evaluation plots
-!results/models/best_model.keras
+# Keep only the ONNX model and evaluation plots
 !results/models/model.onnx
 !results/*.png
 
