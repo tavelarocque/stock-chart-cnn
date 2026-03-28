@@ -21,7 +21,7 @@ import streamlit as st
 import yfinance as yf
 import mplfinance as mpf
 from PIL import Image
-from tensorflow import keras
+import onnxruntime as ort
 
 warnings.filterwarnings("ignore")
 
@@ -44,20 +44,20 @@ st.divider()
 
 # ── Model Loading (cached so it only loads once) ──────────────────────────────
 
-MODEL_PATH = "results/models/best_model.keras"
+MODEL_PATH = "results/models/model.onnx"
 IMAGE_SIZE = (64, 64)
 
 @st.cache_resource
 def load_model():
     if not os.path.exists(MODEL_PATH):
         return None
-    return keras.models.load_model(MODEL_PATH)
+    return ort.InferenceSession(MODEL_PATH)
 
-model = load_model()
+session = load_model()
 
-if model is None:
+if session is None:
     st.error(
-        "⚠️ Trained model not found. Please run `python3 src/train.py` first.",
+        "⚠️ Trained model not found at results/models/model.onnx.",
         icon="🚨",
     )
     st.stop()
@@ -109,8 +109,9 @@ def fetch_and_predict(ticker_symbol):
     # ── Run model ─────────────────────────────────────────────────────────────
     with st.spinner("Running CNN prediction..."):
         img_small = chart_img.resize(IMAGE_SIZE)
-        img_array = np.array(img_small)[np.newaxis, ...]
-        prob_up = float(model.predict(img_array, verbose=0)[0][0])
+        img_array = np.array(img_small, dtype=np.float32)[np.newaxis, ...]
+        input_name = session.get_inputs()[0].name
+        prob_up = float(session.run(None, {input_name: img_array})[0][0][0])
         prob_down = 1 - prob_up
         direction = "UP" if prob_up >= 0.5 else "DOWN"
         confidence = prob_up if prob_up >= 0.5 else prob_down
@@ -137,7 +138,7 @@ def fetch_and_predict(ticker_symbol):
 
     # Candlestick chart (full resolution)
     st.subheader("📊 Last 30 Days — Candlestick Chart")
-    st.image(chart_img, use_column_width=True, caption=f"{ticker_symbol} — 30-day candlestick chart used for prediction")
+    st.image(chart_img, use_container_width=True, caption=f"{ticker_symbol} — 30-day candlestick chart used for prediction")
 
     # Model input preview
     with st.expander("🔬 What the CNN actually sees (64×64 input)"):

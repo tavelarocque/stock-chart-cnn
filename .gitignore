@@ -21,11 +21,13 @@ env/
 
 # Data and model artifacts
 results/charts/
-results/models/
-*.h5
-*.keras
 *.pkl
 *.csv
+
+# Keep model weights and evaluation plots
+!results/models/best_model.keras
+!results/models/model.onnx
+!results/*.png
 
 # OS
 .DS_Store
